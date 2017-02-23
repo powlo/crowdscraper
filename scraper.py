@@ -26,7 +26,7 @@ for card in cards:
     opportunity_id = card.get("data-opportunity-id")
     title = card.get("data-opportunity-name")
     summary = card.select_one("div.cc-card__content > p").string.strip()
-    gbp_raised = card.get("data-opportunity-raised")
+    gbp_raised = int(card.get("data-opportunity-raised"))
     percent_raised = int(card.get("data-opportunity-progress"))
     days_string = card.select_one("span.cc-card__daysleft").string.strip()
     days_remaining = int(re.findall("\d+", days_string)[0])
@@ -58,3 +58,13 @@ for card in cards:
     print('days_remaining: ', days_remaining)
     print('URL: ', url)
     print("-----------------------")
+
+cursor = db.opportunities.aggregate([
+    {"$match" : { "days_remaining" : { "$gt" : 10}}},
+    {"$group": {"_id": None, "total_raised": {"$sum": "$gbp_raised"}}}
+] )
+
+results = cursor.next()
+
+print("Total amount raised on opportunities with at least 10 days remaining:")
+print('£{:,.2f}'.format(results["total_raised"]))
