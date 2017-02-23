@@ -22,22 +22,32 @@ cards = soup.select("div#cc-opportunities__listGrid section.cc-card")
 print("There are {} cards.".format(len(cards)))
 
 for card in cards:
-    title = card.find("h3", {"class": "cc-card__heading"}).string.strip()
+    opportunity_id = card.get("data-opportunity-id")
+    title = card.get("data-opportunity-name")
     summary = card.select_one("div.cc-card__content > p").string.strip()
-    gbp_raised = card.find("dt", text="Raised").parent.find("dd").string.strip()
-    percent_raised = card.select_one("div.cc-progressBar > span").string.strip()
+    gbp_raised = card.get("data-opportunity-raised")
+    percent_raised = card.get("data-opportunity-progress")
     days_remaining = card.select_one("span.cc-card__daysleft").string.strip()
     url = card.select_one("a.cc-card__link").get('href')
 
-    db.opportunities.insert_one({
-        "title" : title,
-        "summary" : summary,
-        "gbp_raised" : gbp_raised,
-        "percent_raised" : percent_raised,
-        "days_remaining" : days_remaining,
-        "url" : url
-    })
-    
+    db.opportunities.update_one(
+    {
+        "oportunity_id" : opportunity_id
+    },
+    {   "$set" :
+        {
+            "oportunity_id" : opportunity_id,
+            "title" : title,
+            "summary" : summary,
+            "gbp_raised" : gbp_raised,
+            "percent_raised" : percent_raised,
+            "days_remaining" : days_remaining,
+            "url" : url
+        }
+    },
+        upsert=True
+    )
+
     print("+++++++++++++++++++++++")
     print('Title: ', title)
     print('Summary: ', summary)
