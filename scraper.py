@@ -3,6 +3,7 @@
 #TODO use a parser that will trigger javascript scroll.
 
 import requests
+import re
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from pymongo import MongoClient
@@ -27,7 +28,8 @@ for card in cards:
     summary = card.select_one("div.cc-card__content > p").string.strip()
     gbp_raised = card.get("data-opportunity-raised")
     percent_raised = card.get("data-opportunity-progress")
-    days_remaining = card.select_one("span.cc-card__daysleft").string.strip()
+    days_string = card.select_one("span.cc-card__daysleft").string.strip()
+    days_remaining = re.findall("\d+", days_string)[0]
     url = card.select_one("a.cc-card__link").get('href')
 
     db.opportunities.update_one(
