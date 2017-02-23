@@ -27,9 +27,9 @@ for card in cards:
     title = card.get("data-opportunity-name")
     summary = card.select_one("div.cc-card__content > p").string.strip()
     gbp_raised = card.get("data-opportunity-raised")
-    percent_raised = card.get("data-opportunity-progress")
+    percent_raised = int(card.get("data-opportunity-progress"))
     days_string = card.select_one("span.cc-card__daysleft").string.strip()
-    days_remaining = re.findall("\d+", days_string)[0]
+    days_remaining = int(re.findall("\d+", days_string)[0])
     url = card.select_one("a.cc-card__link").get('href')
 
     db.opportunities.update_one(
