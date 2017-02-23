@@ -5,6 +5,10 @@
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
+from pymongo import MongoClient
+
+client = MongoClient()
+db = client.crowdscraper
 
 CROWDCUBE_URL = 'https://www.crowdcube.com'
 INVESTMENTS_PAGE = 'investments'
@@ -25,6 +29,15 @@ for card in cards:
     days_remaining = card.select_one("span.cc-card__daysleft").string.strip()
     url = card.select_one("a.cc-card__link").get('href')
 
+    db.opportunities.insert_one({
+        "title" : title,
+        "summary" : summary,
+        "gbp_raised" : gbp_raised,
+        "percent_raised" : percent_raised,
+        "days_remaining" : days_remaining,
+        "url" : url
+    })
+    
     print("+++++++++++++++++++++++")
     print('Title: ', title)
     print('Summary: ', summary)
