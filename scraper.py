@@ -4,7 +4,7 @@ import re
 import time
 
 from bs4 import BeautifulSoup
-import requests
+
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver.common.keys import Keys
