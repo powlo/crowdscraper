@@ -1,14 +1,28 @@
 #scraper.py
-
-#TODO use a parser that will trigger javascript scroll.
-
-import requests
+import sys
 import re
+
 from bs4 import BeautifulSoup
+import requests
+from selenium import webdriver
+from selenium.common.exceptions import TimeoutException, WebDriverException
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+
 from urllib.parse import urljoin
 from pymongo import MongoClient
+from pymongo.errors import ServerSelectionTimeoutError
 
-client = MongoClient()
+#Abort if driver spinup creates exception
+try:
+    driver = webdriver.Chrome()
+except WebDriverException as e:
+    print(e.msg)
+    sys.exit(1)
+
+client = MongoClient(serverSelectionTimeoutMS=2)
 db = client.crowdscraper
 
 CROWDCUBE_URL = 'https://www.crowdcube.com'
@@ -16,8 +30,22 @@ INVESTMENTS_PAGE = 'investments'
 
 investments_url =  urljoin(CROWDCUBE_URL, INVESTMENTS_PAGE)
 
-r = requests.get(investments_url)
-soup = BeautifulSoup(r.text, 'html.parser')
+driver.get(investments_url)
+card_count = len(driver.find_elements_by_class_name("cc-card"))
+driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+
+def card_change(drv):
+    return len(drv.find_elements_by_class_name("cc-card")) != card_count
+
+try:
+    WebDriverWait(driver, 5).until(card_change)
+except TimeoutException:
+    print("Warning: didn't see ajax page update!")
+
+cards = driver.find_elements_by_class_name("cc-card")
+html_page = driver.page_source
+driver.close()
+soup = BeautifulSoup(html_page, 'html.parser')
 cards = soup.select("div#cc-opportunities__listGrid section.cc-card")
 
 print("There are {} cards.".format(len(cards)))
@@ -32,24 +60,28 @@ for card in cards:
     days_remaining = int(re.findall("\d+", days_string)[0])
     url = card.select_one("a.cc-card__link").get('href')
 
-    db.opportunities.update_one(
-    {
-        "oportunity_id" : opportunity_id
-    },
-    {   "$set" :
+    try:
+        db.opportunities.update_one(
         {
-            "oportunity_id" : opportunity_id,
-            "title" : title,
-            "summary" : summary,
-            "gbp_raised" : gbp_raised,
-            "percent_raised" : percent_raised,
-            "days_remaining" : days_remaining,
-            "url" : url
-        }
-    },
-        upsert=True
-    )
-
+            "oportunity_id" : opportunity_id
+        },
+        {   "$set" :
+            {
+                "oportunity_id" : opportunity_id,
+                "title" : title,
+                "summary" : summary,
+                "gbp_raised" : gbp_raised,
+                "percent_raised" : percent_raised,
+                "days_remaining" : days_remaining,
+                "url" : url
+            }
+        },
+            upsert=True
+        )
+    except ServerSelectionTimeoutError as e:
+        print(e)
+        client.close()
+        sys.exit(1)
     print("+++++++++++++++++++++++")
     print('Title: ', title)
     print('Summary: ', summary)
@@ -66,5 +98,6 @@ cursor = db.opportunities.aggregate([
 
 results = cursor.next()
 
-print("Total amount raised on opportunities with at least 10 days remaining:")
-print('£{:,.2f}'.format(results["total_raised"]))
+total_raised_str = "£{:,.2f} has been raised on opportunities with at least 10 days remaining."
+
+print(total_raised_str.format(results["total_raised"]))
