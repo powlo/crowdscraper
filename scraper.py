@@ -1,6 +1,7 @@
 #scraper.py
 import sys
 import re
+import time
 
 from bs4 import BeautifulSoup
 import requests
@@ -31,17 +32,8 @@ INVESTMENTS_PAGE = 'investments'
 investments_url =  urljoin(CROWDCUBE_URL, INVESTMENTS_PAGE)
 
 driver.get(investments_url)
-card_count = len(driver.find_elements_by_class_name("cc-card"))
 driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-
-def card_change(drv):
-    return len(drv.find_elements_by_class_name("cc-card")) != card_count
-
-try:
-    WebDriverWait(driver, 5).until(card_change)
-except TimeoutException:
-    print("Warning: didn't see ajax page update!")
-
+time.sleep(3)
 cards = driver.find_elements_by_class_name("cc-card")
 html_page = driver.page_source
 driver.close()
@@ -93,11 +85,11 @@ for card in cards:
 
 cursor = db.opportunities.aggregate([
     {"$match" : { "days_remaining" : { "$gt" : 10}}},
-    {"$group": {"_id": None, "total_raised": {"$sum": "$gbp_raised"}}}
+    {"$group": {"_id": None, "total_raised": {"$sum": "$gbp_raised"}, "count": {"$sum": 1}}}
 ] )
 
 results = cursor.next()
 
-total_raised_str = "£{:,.2f} has been raised on opportunities with at least 10 days remaining."
+total_raised_str = "£{:,.2f} has been raised on {} opportunities with at least 10 days remaining."
 
-print(total_raised_str.format(results["total_raised"]))
+print(total_raised_str.format(results["total_raised"], results["count"]))
