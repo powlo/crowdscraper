@@ -3,6 +3,8 @@ import requests
 
 from models import Opportunity
 
+USD_TO_GBP = 0.8
+
 #Fetches page contents from a kickstarter url
 def fetch(url, params):
     r = requests.get(url, params=params)
@@ -18,7 +20,7 @@ def scrape_json(page):
             source="Kickstarter",
             title=project["name"],
             summary=project["blurb"],
-            gbp_raised=int(float(project["usd_pledged"])),
+            gbp_raised=int(float(project["usd_pledged"])*USD_TO_GBP),
             percent_raised=int(float(project["pledged"]/project["goal"]*100)),
             days_remaining=5,
             url=project["urls"]["web"]["project"]
