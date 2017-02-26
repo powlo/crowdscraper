@@ -1,11 +1,23 @@
 import re
 import time
+import sys
+
+from selenium import webdriver
+from selenium.common.exceptions import WebDriverException
 
 from bs4 import BeautifulSoup
 from models import Opportunity
 
 #Fetches page contents from a crowdcube url
-def fetch(url, driver):
+#Uses selenium to allow for ajax content requests
+def fetch(url):
+    #Abort if driver spinup creates exception
+    try:
+        driver = webdriver.Chrome()
+    except WebDriverException as e:
+        print(e.msg)
+        sys.exit(1)
+
     driver.get(url)
     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
     time.sleep(3)
