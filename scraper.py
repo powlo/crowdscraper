@@ -1,10 +1,13 @@
-#scraper.py
-import sys
+"""
+Program to scrape investment opportunity
+data from investment websites crowdcube and kickstarter
+"""
+import time
 
-from urllib.parse import urljoin
 from pymongo import MongoClient
 
 from scrapers import crowdcube, kickstarter
+from utils import days_to_seconds
 
 mongo_client = MongoClient(serverSelectionTimeoutMS=2)
 db = mongo_client.crowdscraper
@@ -31,7 +34,8 @@ while len(kick_opps) < 100:
     kick_opps.extend(kickstarter.scrape_json(page))
 
     #If number of opps doesn't change then something went wrong
-    if len(kick_opps) == old_count: break
+    if len(kick_opps) == old_count:
+        break
 
 opportunities.extend(kick_opps)
 
@@ -39,8 +43,9 @@ for opp in opportunities:
     opp.save(db)
 
 #Now examine the data in the db to get total raised.
+ten_days_from_now = time.time() + days_to_seconds(10)
 cursor = db.opportunities.aggregate([
-    {"$match" : {"days_remaining" : {"$gt" : 10}}},
+    {"$match" : {"deadline" : {"$gt" : ten_days_from_now}}},
     {"$group": {"_id": None, "total_raised": {"$sum": "$gbp_raised"}, "count": {"$sum": 1}}}
 ])
 
