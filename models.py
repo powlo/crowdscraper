@@ -12,8 +12,10 @@ class Opportunity:
 
     def save(self, db):
         db.opportunities.update_one(
-            {
-                "oportunity_id" : self.opportunity_id
+            {'$and': [
+                    {"oportunity_id" : self.opportunity_id},
+                    {"source" : self.source}
+                ]
             },
             {"$set" :
                 {
